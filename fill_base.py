@@ -8,10 +8,7 @@ import random
 import time
 
 
-def fill_genres_table():
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
+def fill_genres_table(connection):
 
     my_genres = ['indie', 'hip-hop', 'jazz', 'rock', 'pop', 'empty']
     for genre in my_genres:
@@ -29,10 +26,7 @@ def find_genre_id(sp, genre_name):
     return connection.execute("SELECT genre_id FROM genres WHERE name='" + genre_name + "' ").fetchone()[0]
 
 
-def fill_artists(sp, data=None):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
+def fill_artists(connection, sp, data=None):
     if data != None:
         try:
             connection.execute(f"INSERT INTO artists(sp_id, pseudonym) VALUES('{data['sp_id']}', '{data['pseudonym']}')")
@@ -64,10 +58,7 @@ def fill_artists(sp, data=None):
 
     print('Артисты заполнены')
 
-def fill_albums(sp):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
+def fill_albums(connection, sp):
 
     artists_list = connection.execute('''SELECT * FROM artists''').fetchall()
     for artist in artists_list:
@@ -85,11 +76,8 @@ def fill_albums(sp):
 
     print('Альбомы заполнены')
 
-def fill_album_artists(sp):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
-
+def fill_album_artists(connection, sp):
+    print('...Заполняется отношение альбомов и артистов...')
     album_list = connection.execute('''SELECT * FROM albums''').fetchall()
     for album in album_list:
         # print(album[1] + "============" + album[2])
@@ -126,7 +114,7 @@ def fill_album_artists(sp):
                    artist_info['genre_id'] = existed_genre[0]
 
                # artist_info['genre_id'] = sp.artist(artist_sp_id)['genres'][0]
-               new_artist_id = fill_artists(sp, artist_info)
+               new_artist_id = fill_artists(connection, sp, artist_info)
                if new_artist_id == None:
                    continue
 
@@ -146,11 +134,8 @@ def fill_album_artists(sp):
 
     print('Отношение альбомов и артистов заполнено')
 
-def fill_tracks(sp):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
-
+def fill_tracks(connection, sp):
+    print('...Заполняется список треков...')
     album_list = connection.execute('''SELECT album_id, sp_id FROM albums''').fetchall()
     for album in album_list:
         track_list = sp.album(album[1])['tracks']['items']
@@ -167,10 +152,7 @@ def fill_tracks(sp):
 
     print('Треки заполнены')
 
-def create_my_compilation(sp):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
+def create_my_compilation(connection, sp):
 
     compilation_list = list(range(1, random.randint(7, 10)))
     # compilation_in_base = conne
@@ -185,10 +167,8 @@ def create_my_compilation(sp):
 
     print('Сборники созданы')
 
-def fill_compilation_albums(sp):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
+def fill_compilation_albums(connection, sp):
+
     tracks_list_in_base = connection.execute("SELECT track_id FROM tracks").fetchall()
     tracks_count_in_base = len(tracks_list_in_base)
     tracks_count_in_compilation = 20
@@ -202,41 +182,48 @@ def fill_compilation_albums(sp):
 
     print('Сборники заполнены')
 
-def do_action(sp, action):
+def do_action(connection, sp, action):
     if action == '1':
-        fill_genres_table()
+        fill_genres_table(connection)
     elif action == '2':
-        fill_artists(sp)
+        fill_artists(connection, sp)
     elif action == '3':
-        fill_albums(sp)
+        fill_albums(connection, sp)
     elif action == '4':
-        fill_album_artists(sp)
+        fill_album_artists(connection, sp)
     elif action == '5':
         fill_tracks(sp)
     elif action == '6':
-        create_my_compilation(sp)
+        create_my_compilation(connection, sp)
     elif action == '7':
-        fill_compilation_albums(sp)
+        fill_compilation_albums(connection, sp)
     else:
         print('Выберите другую команду')
-def fill_the_base(sp):
-    fill_genres_table()
+def fill_the_base(connection, sp):
+    fill_genres_table(connection)
     time.sleep(1)
-    fill_artists(sp)
+    fill_artists(connection, sp)
     time.sleep(1)
-    fill_albums(sp)
+    fill_albums(connection, sp)
     time.sleep(1)
-    fill_album_artists(sp)
+    fill_album_artists(connection, sp)
     time.sleep(3)
-    fill_tracks(sp)
-    create_my_compilation(sp)
-    fill_compilation_albums(sp)
+    fill_tracks(connection, sp)
+    create_my_compilation(connection, sp)
+    fill_compilation_albums(connection, sp)
 if __name__ == '__main__':
     APP_ID = '7f7ac36820a24e6587bf114e48054cb2'
     APP_SECRET = '5dbdb56d47b54cd68665291ba3a909c2'
-    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=APP_ID,
-                                                               client_secret=APP_SECRET), requests_timeout=15)
+    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=APP_ID, client_secret=APP_SECRET), requests_timeout=15)
+
+    #'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
+
+    db_string = input('Введите строку подключения к базе данных')
+    db = db_string
+    engine = sqlalchemy.create_engine(db)
+    connection = engine.connect()
+
     # action = input('Выберите команду: ')
     # do_action(sp, action)
-    fill_the_base(sp)
+    fill_the_base(connection, sp)
     print('done!!!')
