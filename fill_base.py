@@ -18,11 +18,8 @@ def fill_genres_table(connection):
             print('такой жанр уже существует')
     print('Жанры заполнены')
 
-def find_genre_id(sp, genre_name):
-    db = 'postgresql://postgres:Gunner90@localhost:5432/SQL_HomeWork_3'
-    engine = sqlalchemy.create_engine(db)
-    connection = engine.connect()
-
+def find_genre_id(connection, sp, genre_name):
+    
     return connection.execute("SELECT genre_id FROM genres WHERE name='" + genre_name + "' ").fetchone()[0]
 
 
@@ -41,7 +38,7 @@ def fill_artists(connection, sp, data=None):
     genres_list = connection.execute('''SELECT * FROM genres''').fetchall()
     last_id = None
     for genre in genres_list:
-        genre_id = find_genre_id(sp, genre[1])
+        genre_id = find_genre_id(connection, sp, genre[1])
         res = sp.recommendations(seed_genres=[genre[1]])
         for i in res['tracks']:
             for j in i['artists']:
@@ -199,6 +196,30 @@ def do_action(connection, sp, action):
         fill_compilation_albums(connection, sp)
     else:
         print('Выберите другую команду')
+
+def fill_data_for_testing_hw(connection, sp):
+    try:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(1, 2)''')
+    except sqlalchemy.exc.IntegrityError:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(1, 3)''')
+
+    try:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(2, 4)''')
+    except sqlalchemy.exc.IntegrityError:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(2, 1)''')
+
+    try:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(3, 2)''')
+    except sqlalchemy.exc.IntegrityError:
+        connection.execute(
+            f'''INSERT INTO artists_by_genres(artist_id, genre_id) VALUES(3, 3)''')
+
+
 def fill_the_base(connection, sp):
     fill_genres_table(connection)
     time.sleep(1)
@@ -211,6 +232,8 @@ def fill_the_base(connection, sp):
     fill_tracks(connection, sp)
     create_my_compilation(connection, sp)
     fill_compilation_albums(connection, sp)
+    fill_data_for_testing_hw(connection, sp)
+    
 if __name__ == '__main__':
     APP_ID = '7f7ac36820a24e6587bf114e48054cb2'
     APP_SECRET = '5dbdb56d47b54cd68665291ba3a909c2'
